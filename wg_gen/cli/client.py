@@ -88,7 +88,7 @@ class ClientAddParser(ClientBaseParser):
                 qr_code = fp.getvalue()
             console.print(Panel(qr_code, title="Client QR", style="black on white"))
         else:
-            console.print(Panel(client_conf, title="Client config", style="white on black"))
+            console.print(client_conf)
 
         return 0
 
