@@ -1,0 +1,15 @@
+[project]
+name = "wg-gen"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "argclass>=1.1.0",
+    "cryptography>=44.0.3",
+    "qrcode>=8.2",
+    "rich>=14.0.0",
+]
+
+[project.scripts]
+wg-gen = "wg_gen.__main__:main"
