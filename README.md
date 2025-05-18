@@ -167,4 +167,7 @@ Utility support read configuration files from `~/.config/wg-gen/config.yaml` by 
 db_path = ~/.local/share/wg-gen/database.sqlite3
 
 log_level = info
+
+# Default output format for list subcommands, can be 'table', 'json', 'csv', 'tsv'
+output_format = table
 ```
