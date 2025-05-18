@@ -5,8 +5,8 @@ from pathlib import Path
 
 import rich.logging
 
-from .db import init_db, db_connection
 from .cli import Parser
+from .db import db_connection, init_db
 
 
 def main():
@@ -14,7 +14,7 @@ def main():
     config_path = xdg_path / "config.ini"
     parser = Parser(
         config_files=[os.getenv("WG_GEN_CONFIG", config_path)],
-        auto_env_var_prefix="WG_GEN_"
+        auto_env_var_prefix="WG_GEN_",
     )
     parser.parse_args()
 

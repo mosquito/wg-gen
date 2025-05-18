@@ -6,14 +6,14 @@ import sqlite3
 
 import argclass
 import rich
-from rich import get_console
 from argclass import Argument
 from qrcode.main import QRCode
+from rich import get_console
 from rich.panel import Panel
 
+from ..db import Client, Interface
+from ..table import SimpleTable
 from .base import BaseParser
-from ..db import Interface, Client
-from ..table import table_maker
 
 
 class ClientBaseParser(BaseParser):
@@ -43,12 +43,12 @@ class ClientAddParser(ClientBaseParser):
             if not self.force:
                 logging.error(
                     f"Error: Client '%s' already exists for interface '%s', use --force to overwrite",
-                    self.alias, self.interface
+                    self.alias, self.interface,
                 )
                 return 1
 
         client, private_key = interface.create_client(
-            conn, alias=self.alias, preshared_key=self.preshared_key
+            conn, alias=self.alias, preshared_key=self.preshared_key,
         )
 
         config = configparser.RawConfigParser()
@@ -112,7 +112,7 @@ class ClientListParser(BaseParser):
     """List all clients for an interface"""
 
     def __call__(self, conn: sqlite3.Connection) -> int:
-        table = table_maker("Client and interface list", "Interface", "Client", "IPv4", "IPv6", "Public Key")
+        table = SimpleTable("Interface", "Client", "IPv4", "IPv6", "Public Key", title="WireGuard Clients")
 
         for interface in Interface.list(conn):
             for client in interface.clients(conn):
@@ -121,10 +121,10 @@ class ClientListParser(BaseParser):
                     client.alias,
                     str(client.ipv4) if client.ipv4 else "",
                     str(client.ipv6) if client.ipv6 else "",
-                    client.public_key
+                    client.public_key,
                 )
 
-        rich.print(table)
+        table.print(self.__parent__.__parent__.output_format)
         return 0
 
 

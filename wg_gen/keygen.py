@@ -11,13 +11,13 @@ def keygen():
             serialization.Encoding.Raw,
             serialization.PrivateFormat.Raw,
             serialization.NoEncryption(),
-        )
+        ),
     ).decode()
     pub_b64 = base64.b64encode(
         priv.public_key().public_bytes(
             serialization.Encoding.Raw,
             serialization.PublicFormat.Raw,
-        )
+        ),
     ).decode()
     return priv_b64, pub_b64
 
@@ -26,5 +26,5 @@ def preshared_keygen():
         X25519PrivateKey.generate().public_key().public_bytes(
             serialization.Encoding.Raw,
             serialization.PublicFormat.Raw,
-        )
+        ),
     ).decode()

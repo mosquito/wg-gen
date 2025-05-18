@@ -1,7 +1,7 @@
 import errno
+import ipaddress
 import logging
 import sqlite3
-import ipaddress
 
 import rich
 from argclass import Argument, Nargs
@@ -10,7 +10,7 @@ from wg_gen.cli import BaseParser
 from wg_gen.cli.client import ClientBaseParser
 from wg_gen.db import Interface
 from wg_gen.keygen import keygen
-from wg_gen.table import table_maker
+from wg_gen.table import SimpleTable
 
 
 class InterfaceAddParser(BaseParser):
@@ -24,7 +24,7 @@ class InterfaceAddParser(BaseParser):
     ipv6: ipaddress.IPv6Interface | None = Argument(
         default=None,
         help="IPv6 interface for server, all subnet addresses wil be used for clients (e.g. fd00::1/64)",
-        type=ipaddress.IPv6Interface
+        type=ipaddress.IPv6Interface,
     )
     mtu: int = Argument(default=1420, help="MTU to use for the interface")
     listen_port: int = Argument(default=51820, help="Server listen port")
@@ -33,12 +33,12 @@ class InterfaceAddParser(BaseParser):
         nargs=Nargs.ONE_OR_MORE,
         default=["1.1.1.1", "8.8.8.8"],
         help="DNS servers for clients",
-        type=ipaddress.ip_address
+        type=ipaddress.ip_address,
     )
     allowed_ips: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = Argument(
         nargs=Nargs.ONE_OR_MORE,
         default=["0.0.0.0/0", "2000::/3", "64:ff9b::/96"],
-        help="Allowed IPs for peers"
+        help="Allowed IPs for peers",
     )
     persistent_keepalive: int = Argument(default=15, help="Persistent keepalive seconds")
 
@@ -64,8 +64,7 @@ class InterfaceListParser(BaseParser):
     """List all interfaces"""
 
     def __call__(self, conn: sqlite3.Connection) -> int:
-        table = table_maker(
-            "Interfaces",
+        table = SimpleTable(
             "Interface",
             "Endpoint",
             "Public Key",
@@ -76,6 +75,7 @@ class InterfaceListParser(BaseParser):
             "DNS",
             "Allowed IPs",
             "Address Shift",
+            title="WireGuard Interfaces",
         )
         interfaces = Interface.list(conn)
         for interface in interfaces:
@@ -92,7 +92,7 @@ class InterfaceListParser(BaseParser):
                 str(interface.address_shift),
             )
 
-        rich.print(table)
+        table.print(self.__parent__.__parent__.output_format)
         return 0
 
 

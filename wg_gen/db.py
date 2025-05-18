@@ -1,8 +1,8 @@
 import contextlib
 import ipaddress
 import sqlite3
-from datetime import datetime
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Iterator
 
@@ -29,7 +29,7 @@ def init_db(conn: sqlite3.Connection):
             allowed_ips TEXT NOT NULL,
             persistent_keepalive INTEGER NOT NULL
         )
-        """
+        """,
     )
 
     # clients table
@@ -46,7 +46,7 @@ def init_db(conn: sqlite3.Connection):
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (interface) REFERENCES interfaces(name),
             UNIQUE (interface, alias)
-        )"""
+        )""",
     )
 
     conn.commit()
@@ -106,7 +106,7 @@ class Interface:
             endpoint=result["endpoint"],
             dns=list(map(ipaddress.ip_address, result["dns"].split(","))),
             allowed_ips=list(map(ipaddress.ip_network, result["allowed_ips"].split(","))),
-            persistent_keepalive=result["persistent_keepalive"]
+            persistent_keepalive=result["persistent_keepalive"],
         )
 
     def save(self, conn: sqlite3.Connection) -> None:
@@ -156,8 +156,8 @@ class Interface:
                 self.endpoint,
                 ",".join(map(str, self.dns)),
                 ",".join(map(str, self.allowed_ips)),
-                self.persistent_keepalive
-            )
+                self.persistent_keepalive,
+            ),
         )
 
     def generate_client_ipv4(self) -> ipaddress.IPv4Interface | None:
@@ -215,11 +215,11 @@ class Interface:
         cur = conn.cursor()
         cur.execute(
             "DELETE FROM clients WHERE interface = ?",
-            (self.name,)
+            (self.name,),
         )
         cur.execute(
             "DELETE FROM interfaces WHERE name = ?",
-            (self.name,)
+            (self.name,),
         )
 
 
@@ -279,8 +279,8 @@ class Client:
                 self.preshared_key,
                 str(self.ipv4) if self.ipv4 else None,
                 str(self.ipv6) if self.ipv6 else None,
-                self.created_at.strftime("%Y-%m-%d %H:%M:%S")
-            )
+                self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            ),
         )
 
     def remove(self, conn: sqlite3.Connection) -> None:
@@ -288,5 +288,5 @@ class Client:
         cur = conn.cursor()
         cur.execute(
             "DELETE FROM clients WHERE interface = ? AND alias = ?",
-            (self.interface, self.alias)
+            (self.interface, self.alias),
         )

@@ -6,8 +6,8 @@ from pathlib import Path
 
 from argclass import Argument
 
-from .base import BaseParser
 from ..db import Interface
+from .base import BaseParser
 
 
 class SystemdNetworkdParser(BaseParser):
@@ -49,9 +49,11 @@ class SystemdNetworkdParser(BaseParser):
                 for client in interface.clients(conn):
                     f.write(f"# Client: {client.alias}\n")
                     f.write(f"[WireGuardPeer]\n")
-                    f.write("AllowedIPs={}\n".format(
-                        ",".join(map(str, filter(None, [client.ipv4, client.ipv6])))
-                    ))
+                    f.write(
+                        "AllowedIPs={}\n".format(
+                            ",".join(map(str, filter(None, [client.ipv4, client.ipv6]))),
+                        ),
+                    )
                     f.write(f"PublicKey={client.public_key}\n")
                     if client.preshared_key:
                         f.write(f"PresharedKey={client.preshared_key}\n")
@@ -65,7 +67,7 @@ class SystemdNetworkdParser(BaseParser):
 
             for path, content in [
                 (netdev_path, netdev_content),
-                (network_path, network_content)
+                (network_path, network_content),
             ]:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 logging.info("Writing configuration for %s to: %s", interface.name, path)
@@ -87,17 +89,21 @@ class WGQuickParser(BaseParser):
                 f.write(f"ListenPort={interface.listen_port}\n")
                 f.write(f"PrivateKey={interface.private_key}\n")
                 f.write(f"MTU={interface.mtu}\n")
-                f.write("Address={}\n".format(
-                    ",".join(map(str, filter(None, [interface.ipv4, interface.ipv6])))
-                ))
+                f.write(
+                    "Address={}\n".format(
+                        ",".join(map(str, filter(None, [interface.ipv4, interface.ipv6]))),
+                    ),
+                )
                 f.write("\n")
 
                 for client in interface.clients(conn):
                     f.write(f"# Client: {client.alias}\n")
                     f.write(f"[Peer]\n")
-                    f.write("AllowedIPs={}\n".format(
-                        ",".join(map(str, filter(None, [client.ipv4, client.ipv6])))
-                    ))
+                    f.write(
+                        "AllowedIPs={}\n".format(
+                            ",".join(map(str, filter(None, [client.ipv4, client.ipv6]))),
+                        ),
+                    )
                     f.write(f"PublicKey={client.public_key}\n")
                     f.write(f"PersistentKeepalive={interface.persistent_keepalive}\n")
                     if client.preshared_key:
