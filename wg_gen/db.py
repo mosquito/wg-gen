@@ -199,7 +199,7 @@ class Interface:
 
     def clients(self, conn: sqlite3.Connection) -> Iterator["Client"]:
         cur = conn.cursor()
-        cur.execute("SELECT alias FROM clients WHERE interface = ?", (self.name,))
+        cur.execute("SELECT alias FROM clients WHERE interface = ? ORDER BY id", (self.name,))
         for row in cur.fetchall():
             yield Client.load(conn, row["alias"], self.name)
 
