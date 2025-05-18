@@ -1,5 +1,6 @@
 import configparser
 import logging
+import os
 from pathlib import Path
 
 import rich.logging
@@ -12,7 +13,7 @@ def main():
     xdg_path = Path("~/.local/share/wg-gen").expanduser()
     config_path = xdg_path / "config.ini"
     parser = Parser(
-        config_files=[config_path],
+        config_files=[os.getenv("WG_GEN_CONFIG", config_path)],
         auto_env_var_prefix="WG_GEN_"
     )
     parser.parse_args()

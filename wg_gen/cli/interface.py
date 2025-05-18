@@ -41,7 +41,6 @@ class InterfaceAddParser(BaseParser):
         help="Allowed IPs for peers"
     )
     persistent_keepalive: int = Argument(default=15, help="Persistent keepalive seconds")
-    use_preshared_key: bool = Argument(default=False, help="Generate and use preshared key")
 
     def __call__(self, conn: sqlite3.Connection) -> int:
         private_key, public_key = keygen()
