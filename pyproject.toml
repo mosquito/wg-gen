@@ -19,5 +19,18 @@ build-backend = "uv_build"
 module-name = "wg_gen"
 module-root = "."
 
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.15.0",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: slow stress tests (deselect with '-m \"not slow\"')",
+]
+
 [project.scripts]
 wg-gen = "wg_gen.__main__:main"

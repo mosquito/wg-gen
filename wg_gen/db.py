@@ -32,9 +32,6 @@ def init_db(conn: sqlite3.Connection):
         """,
     )
 
-    # indexes
-    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_interfaces_name ON interfaces(ipv4, ipv6)")
-
     # clients table
     cur.execute(
         """
@@ -51,9 +48,6 @@ def init_db(conn: sqlite3.Connection):
             UNIQUE (interface, alias)
         )""",
     )
-
-    # indexes
-    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_clients_interface ON clients(interface)")
 
     conn.commit()
 
@@ -85,7 +79,9 @@ class Interface:
     listen_port: int
     endpoint: str
     dns: list[ipaddress.IPv4Address | ipaddress.IPv6Address]
-    allowed_ips: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = field(default_factory=list)
+    allowed_ips: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = field(
+        default_factory=list
+    )
     address_shift: int = 1
     persistent_keepalive: int = 15
     created_at: datetime = field(default_factory=datetime.now)
@@ -111,12 +107,57 @@ class Interface:
             listen_port=result["listen_port"],
             endpoint=result["endpoint"],
             dns=list(map(ipaddress.ip_address, result["dns"].split(","))),
-            allowed_ips=list(map(ipaddress.ip_network, result["allowed_ips"].split(","))),
+            allowed_ips=list(
+                map(ipaddress.ip_network, result["allowed_ips"].split(","))
+            ),
             persistent_keepalive=result["persistent_keepalive"],
         )
 
+    def check_address_space(self) -> None:
+        """Check that server address is in the network and there is room
+        for at least one client address (server + shift=1)."""
+        if self.ipv4:
+            first_client = self.ipv4 + 1
+            if first_client.ip not in self.ipv4.network:
+                raise ValueError(
+                    f"IPv4 network {self.ipv4.network} has no room "
+                    f"for client addresses (server address {self.ipv4.ip})",
+                )
+        if self.ipv6:
+            first_client = self.ipv6 + 1
+            if first_client.ip not in self.ipv6.network:
+                raise ValueError(
+                    f"IPv6 network {self.ipv6.network} has no room "
+                    f"for client addresses (server address {self.ipv6.ip})",
+                )
+
+    def check_ip_conflicts(self, conn: sqlite3.Connection) -> None:
+        """Check that IPv4/IPv6 subnets don't overlap with other interfaces"""
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT name, ipv4, ipv6 FROM interfaces WHERE name != ?",
+            (self.name,),
+        )
+        for row in cur.fetchall():
+            if self.ipv4 and row["ipv4"]:
+                existing = ipaddress.IPv4Interface(row["ipv4"])
+                if self.ipv4.network.overlaps(existing.network):
+                    raise ValueError(
+                        f"IPv4 subnet {self.ipv4.network} overlaps with "
+                        f"interface '{row['name']}' ({existing.network})",
+                    )
+            if self.ipv6 and row["ipv6"]:
+                existing = ipaddress.IPv6Interface(row["ipv6"])
+                if self.ipv6.network.overlaps(existing.network):
+                    raise ValueError(
+                        f"IPv6 subnet {self.ipv6.network} overlaps with "
+                        f"interface '{row['name']}' ({existing.network})",
+                    )
+
     def save(self, conn: sqlite3.Connection) -> None:
         """Save the interface to the database"""
+        self.check_address_space()
+        self.check_ip_conflicts(conn)
         cur = conn.cursor()
         cur.execute(
             """
@@ -152,8 +193,8 @@ class Interface:
             (
                 self.name,
                 self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-                self.ipv4,
-                self.ipv6,
+                str(self.ipv4) if self.ipv4 else None,
+                str(self.ipv6) if self.ipv6 else None,
                 self.address_shift,
                 self.private_key,
                 self.public_key,
@@ -169,12 +210,22 @@ class Interface:
     def generate_client_ipv4(self) -> ipaddress.IPv4Interface | None:
         if not self.ipv4:
             return None
-        return self.ipv4 + self.address_shift
+        result = self.ipv4 + self.address_shift
+        if result.ip not in self.ipv4.network:
+            raise ValueError(
+                f"IPv4 address pool exhausted for {self.ipv4.network}",
+            )
+        return result
 
     def generate_client_ipv6(self) -> ipaddress.IPv6Interface | None:
         if not self.ipv6:
             return None
-        return self.ipv6 + self.address_shift
+        result = self.ipv6 + self.address_shift
+        if result.ip not in self.ipv6.network:
+            raise ValueError(
+                f"IPv6 address pool exhausted for {self.ipv6.network}",
+            )
+        return result
 
     def create_client(
         self,
@@ -184,8 +235,10 @@ class Interface:
     ) -> tuple["Client", str]:
         preshared_key = preshared_keygen() if preshared_key else None
 
-        ipv4 = self.generate_client_ipv4().ip
-        ipv6 = self.generate_client_ipv6().ip
+        ipv4_iface = self.generate_client_ipv4()
+        ipv6_iface = self.generate_client_ipv6()
+        ipv4 = ipv4_iface.ip if ipv4_iface else None
+        ipv6 = ipv6_iface.ip if ipv6_iface else None
 
         self.address_shift += 1
         self.save(conn)
@@ -205,7 +258,9 @@ class Interface:
 
     def clients(self, conn: sqlite3.Connection) -> Iterator["Client"]:
         cur = conn.cursor()
-        cur.execute("SELECT alias FROM clients WHERE interface = ? ORDER BY id", (self.name,))
+        cur.execute(
+            "SELECT alias FROM clients WHERE interface = ? ORDER BY id", (self.name,)
+        )
         for row in cur.fetchall():
             yield Client.load(conn, row["alias"], self.name)
 
@@ -242,7 +297,10 @@ class Client:
     @classmethod
     def load(cls, conn: sqlite3.Connection, alias: str, interface: str) -> "Client":
         cur = conn.cursor()
-        cur.execute("SELECT * FROM clients WHERE alias = ? AND interface = ?", (alias, interface))
+        cur.execute(
+            "SELECT * FROM clients WHERE alias = ? AND interface = ?",
+            (alias, interface),
+        )
         result = cur.fetchone()
         if not result:
             raise LookupError("Client not found")

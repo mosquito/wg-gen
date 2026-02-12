@@ -5,24 +5,26 @@ import logging
 import sqlite3
 
 import argclass
-import rich
+
 from argclass import Argument
 from qrcode.main import QRCode
 from rich import get_console
 from rich.panel import Panel
 
-from ..db import Client, Interface
-from ..table import SimpleTable
 from .base import BaseParser
+from wg_gen.db import Client, Interface
+from wg_gen.table import SimpleTable
 
 
 class ClientBaseParser(BaseParser):
     """Base class for interface-related commands"""
+
     interface: str = Argument("interface", help="WireGuard interface name")
 
 
 class ClientAddParser(ClientBaseParser):
     """Add a new client to an interface"""
+
     alias: str = Argument("alias", help="Client alias (unique per interface)")
     preshared_key: bool = False
     force: bool = False
@@ -36,20 +38,27 @@ class ClientAddParser(ClientBaseParser):
             return 1
 
         try:
-            existent_client = Client.load(conn, self.alias, self.interface)
+            Client.load(conn, self.alias, self.interface)
         except LookupError:
             pass
         else:
             if not self.force:
                 logging.error(
-                    f"Error: Client '%s' already exists for interface '%s', use --force to overwrite",
-                    self.alias, self.interface,
+                    "Error: Client '%s' already exists for interface '%s', use --force to overwrite",
+                    self.alias,
+                    self.interface,
                 )
                 return 1
 
-        client, private_key = interface.create_client(
-            conn, alias=self.alias, preshared_key=self.preshared_key,
-        )
+        try:
+            client, private_key = interface.create_client(
+                conn,
+                alias=self.alias,
+                preshared_key=self.preshared_key,
+            )
+        except ValueError as e:
+            logging.error("%s", e)
+            return 1
 
         config = configparser.RawConfigParser()
         config.optionxform = str
@@ -67,8 +76,8 @@ class ClientAddParser(ClientBaseParser):
         config.set("Interface", "PrivateKey", private_key)
         config.set("Interface", "DNS", ",".join(map(str, interface.dns)))
         config.set("Interface", "MTU", str(interface.mtu))
-        if self.preshared_key:
-            config.set("Interface", "PresharedKey", private_key)
+        if client.preshared_key:
+            config.set("Peer", "PresharedKey", client.preshared_key)
 
         config.set("Peer", "PublicKey", interface.public_key)
         config.set("Peer", "AllowedIPs", ", ".join(map(str, interface.allowed_ips)))
@@ -94,14 +103,23 @@ class ClientAddParser(ClientBaseParser):
 
 
 class ClientRemoveParser(ClientBaseParser):
-    aliases: str = Argument("aliases", default=[], nargs=argclass.Nargs.ONE_OR_MORE, help="Clients alias to remove")
+    aliases: str = Argument(
+        "aliases",
+        default=[],
+        nargs=argclass.Nargs.ONE_OR_MORE,
+        help="Clients alias to remove",
+    )
 
     def __call__(self, conn: sqlite3.Connection) -> int:
         for alias in self.aliases:
             try:
                 client = Client.load(conn, alias, self.interface)
             except LookupError:
-                logging.error(f"Error: Client '%s' not found in interface '%s'", alias, self.interface)
+                logging.error(
+                    "Error: Client '%s' not found in interface '%s'",
+                    alias,
+                    self.interface,
+                )
                 continue
             logging.info("Removing client '%s'", alias)
             client.remove(conn)
@@ -112,7 +130,14 @@ class ClientListParser(BaseParser):
     """List all clients for an interface"""
 
     def __call__(self, conn: sqlite3.Connection) -> int:
-        table = SimpleTable("Interface", "Client", "IPv4", "IPv6", "Public Key", title="WireGuard Clients")
+        table = SimpleTable(
+            "Interface",
+            "Client",
+            "IPv4",
+            "IPv6",
+            "Public Key",
+            title="WireGuard Clients",
+        )
 
         for interface in Interface.list(conn):
             for client in interface.clients(conn):
@@ -130,6 +155,7 @@ class ClientListParser(BaseParser):
 
 class ClientCommands(BaseParser):
     """Manage clients for WireGuard interfaces"""
+
     add: ClientAddParser = ClientAddParser()
     remove: ClientRemoveParser = ClientRemoveParser()
     list: ClientListParser = ClientListParser()

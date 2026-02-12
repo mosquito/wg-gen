@@ -13,7 +13,8 @@ class Parser(BaseParser):
     log_level = argclass.LogLevel
     db_path: Path = Argument(default=None, help="Path to the database file")
     output_format: str = Argument(
-        "--output-format", "-f",
+        "--output-format",
+        "-f",
         default="table",
         choices=["table", "json", "csv", "tsv"],
         help="Output format",

@@ -11,7 +11,9 @@ from .base import BaseParser
 
 
 class SystemdNetworkdParser(BaseParser):
-    output: Path = Argument("--output", "-o", default=Path("/etc/systemd/network"), help="Output directory")
+    output: Path = Argument(
+        "--output", "-o", default=Path("/etc/systemd/network"), help="Output directory"
+    )
 
     def __call__(self, conn: sqlite3.Connection) -> int:
         output_path = self.output.resolve()
@@ -19,16 +21,16 @@ class SystemdNetworkdParser(BaseParser):
 
         for interface in Interface.list(conn):
             with StringIO() as f:
-                f.write(f"[Match]\n")
+                f.write("[Match]\n")
                 f.write(f"Name={interface.name}\n")
                 f.write("\n")
 
-                f.write(f"[Link]\n")
-                f.write(f"ActivationPolicy=always-up\n")
-                f.write(f"RequiredForOnline=no\n")
+                f.write("[Link]\n")
+                f.write("ActivationPolicy=always-up\n")
+                f.write("RequiredForOnline=no\n")
                 f.write("\n")
 
-                f.write(f"[Network]\n")
+                f.write("[Network]\n")
                 for address in filter(None, [interface.ipv4, interface.ipv6]):
                     f.write(f"Address={address}\n")
                 f.write("\n")
@@ -36,7 +38,7 @@ class SystemdNetworkdParser(BaseParser):
 
             with StringIO() as f:
                 f.write("[NetDev]\n")
-                f.write(f"Kind=wireguard\n")
+                f.write("Kind=wireguard\n")
                 f.write(f"Name={interface.name}\n")
                 f.write(f"MTUBytes={interface.mtu}\n")
                 f.write("\n")
@@ -48,10 +50,12 @@ class SystemdNetworkdParser(BaseParser):
 
                 for client in interface.clients(conn):
                     f.write(f"# Client: {client.alias}\n")
-                    f.write(f"[WireGuardPeer]\n")
+                    f.write("[WireGuardPeer]\n")
                     f.write(
                         "AllowedIPs={}\n".format(
-                            ",".join(map(str, filter(None, [client.ipv4, client.ipv6]))),
+                            ",".join(
+                                map(str, filter(None, [client.ipv4, client.ipv6]))
+                            ),
                         ),
                     )
                     f.write(f"PublicKey={client.public_key}\n")
@@ -70,14 +74,18 @@ class SystemdNetworkdParser(BaseParser):
                 (network_path, network_content),
             ]:
                 path.parent.mkdir(parents=True, exist_ok=True)
-                logging.info("Writing configuration for %s to: %s", interface.name, path)
+                logging.info(
+                    "Writing configuration for %s to: %s", interface.name, path
+                )
                 path.write_text(content)
                 path.chmod(0o640)
         return 0
 
 
 class WGQuickParser(BaseParser):
-    output: Path = Argument("--output", "-o", default=Path("/etc/wireguard"), help="Output directory")
+    output: Path = Argument(
+        "--output", "-o", default=Path("/etc/wireguard"), help="Output directory"
+    )
 
     def __call__(self, conn: sqlite3.Connection) -> int:
         output_path = self.output.resolve()
@@ -85,23 +93,27 @@ class WGQuickParser(BaseParser):
 
         for interface in Interface.list(conn):
             with StringIO() as f:
-                f.write(f"[Interface]\n")
+                f.write("[Interface]\n")
                 f.write(f"ListenPort={interface.listen_port}\n")
                 f.write(f"PrivateKey={interface.private_key}\n")
                 f.write(f"MTU={interface.mtu}\n")
                 f.write(
                     "Address={}\n".format(
-                        ",".join(map(str, filter(None, [interface.ipv4, interface.ipv6]))),
+                        ",".join(
+                            map(str, filter(None, [interface.ipv4, interface.ipv6]))
+                        ),
                     ),
                 )
                 f.write("\n")
 
                 for client in interface.clients(conn):
                     f.write(f"# Client: {client.alias}\n")
-                    f.write(f"[Peer]\n")
+                    f.write("[Peer]\n")
                     f.write(
                         "AllowedIPs={}\n".format(
-                            ",".join(map(str, filter(None, [client.ipv4, client.ipv6]))),
+                            ",".join(
+                                map(str, filter(None, [client.ipv4, client.ipv6]))
+                            ),
                         ),
                     )
                     f.write(f"PublicKey={client.public_key}\n")

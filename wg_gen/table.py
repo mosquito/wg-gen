@@ -34,7 +34,7 @@ class SimpleTable(Table):
         cells_len = 0
         for col in self.columns:
             hdr = col.header.lower().replace(" ", "_")
-            data[hdr] = list(c if not "\n" in c else c.splitlines() for c in col.cells)
+            data[hdr] = list(c if "\n" not in c else c.splitlines() for c in col.cells)
             cells_len = len(data[hdr])
         result = []
         for i in range(cells_len):
@@ -48,12 +48,18 @@ class SimpleTable(Table):
         print(json.dumps(self.get_rows(), indent=1))
 
     def print_csv(self, delimiter: str = ","):
-        writer = csv.writer(sys.stdout, delimiter=delimiter, quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        writer = csv.writer(
+            sys.stdout, delimiter=delimiter, quotechar='"', quoting=csv.QUOTE_MINIMAL
+        )
         data = self.get_rows()
+        if not data:
+            return
 
         writer.writerow(data[0].keys())
         for row in data:
-            writer.writerow(v if not isinstance(v, list) else ",".join(v) for v in row.values())
+            writer.writerow(
+                v if not isinstance(v, list) else ",".join(v) for v in row.values()
+            )
 
     def print(self, format: str = "table"):
         if format == "json":

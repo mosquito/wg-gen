@@ -51,13 +51,14 @@ NON_LOCAL_NETS = frozenset(
             "200.0.0.0/5",
             "208.0.0.0/4",
             "2000::/3",
-        ]
+        ],
     )
 )
 
 
 class InterfaceAddParser(BaseParser):
     """Add a new WireGuard interface"""
+
     name: str = Argument("name", help="Interface name (e.g. wg0)")
     ipv4: ipaddress.IPv4Interface | None = Argument(
         default=None,
@@ -71,10 +72,12 @@ class InterfaceAddParser(BaseParser):
     )
     mtu: int = Argument(default=1420, help="MTU to use for the interface")
     listen_port: int = Argument(
-        default=randint(1024, 65000),
+        default=0,
         help="Server listen port, if not specified a random port between 1024 and 65000 will be used",
     )
-    endpoint: str = Argument(required=True, help="Server endpoint host:port for clients")
+    endpoint: str = Argument(
+        required=True, help="Server endpoint host:port for clients"
+    )
     dns: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = Argument(
         nargs=Nargs.ONE_OR_MORE,
         default=["1.1.1.1", "8.8.8.8"],
@@ -87,7 +90,9 @@ class InterfaceAddParser(BaseParser):
         help="Allowed IPs for peers. Special value 'non-local' can be used to set all non-local networks",
         type=str,
     )
-    persistent_keepalive: int = Argument(default=15, help="Persistent keepalive seconds")
+    persistent_keepalive: int = Argument(
+        default=15, help="Persistent keepalive seconds"
+    )
 
     def __call__(self, conn: sqlite3.Connection) -> int:
         private_key, public_key = keygen()
@@ -99,20 +104,27 @@ class InterfaceAddParser(BaseParser):
             else:
                 allowed_ips.add(ipaddress.ip_network(allowed_ip))
 
+        listen_port = self.listen_port if self.listen_port else randint(1024, 65000)
+
         interface = Interface(
             name=self.name,
             ipv4=self.ipv4,
             ipv6=self.ipv6,
             mtu=self.mtu,
-            listen_port=self.listen_port,
+            listen_port=listen_port,
             endpoint=self.endpoint,
             dns=self.dns,
-            allowed_ips=allowed_ips,
+            allowed_ips=sorted(allowed_ips, key=str),
             persistent_keepalive=self.persistent_keepalive,
             public_key=public_key,
             private_key=private_key,
         )
-        interface.save(conn)
+        try:
+            interface.save(conn)
+        except ValueError as e:
+            logging.error("%s", e)
+            return 1
+        return 0
 
 
 class InterfaceListParser(BaseParser):
@@ -166,6 +178,7 @@ class InterfaceRemoveParser(ClientBaseParser):
 
 class InterfaceCommands(BaseParser):
     """Manage WireGuard interfaces"""
+
     add: InterfaceAddParser = InterfaceAddParser()
     remove: InterfaceRemoveParser = InterfaceRemoveParser()
     list: InterfaceListParser = InterfaceListParser()

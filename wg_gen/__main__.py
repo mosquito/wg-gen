@@ -9,14 +9,14 @@ from .cli import Parser
 from .db import db_connection, init_db
 
 
-def main():
+def main(*args):
     xdg_path = Path("~/.local/share/wg-gen").expanduser()
     config_path = xdg_path / "config.ini"
     parser = Parser(
         config_files=[os.getenv("WG_GEN_CONFIG", config_path)],
         auto_env_var_prefix="WG_GEN_",
     )
-    parser.parse_args()
+    parser.parse_args(args or None)
 
     logging.basicConfig(
         level=parser.log_level,
@@ -37,6 +37,7 @@ def main():
     with db_connection(parser.db_path) as conn:
         init_db(conn)
         retcode = parser(conn)
+
     exit(retcode)
 
 

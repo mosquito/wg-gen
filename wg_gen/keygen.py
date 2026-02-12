@@ -21,9 +21,12 @@ def keygen():
     ).decode()
     return priv_b64, pub_b64
 
+
 def preshared_keygen():
     return base64.b64encode(
-        X25519PrivateKey.generate().public_key().public_bytes(
+        X25519PrivateKey.generate()
+        .public_key()
+        .public_bytes(
             serialization.Encoding.Raw,
             serialization.PublicFormat.Raw,
         ),
