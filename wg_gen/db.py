@@ -17,8 +17,8 @@ def init_db(conn: sqlite3.Connection):
         CREATE TABLE IF NOT EXISTS interfaces (
             name TEXT PRIMARY KEY UNIQUE NOT NULL,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            ipv4 TEXT NOT NULL,
-            ipv6 TEXT NOT NULL,
+            ipv4 TEXT DEFAULT NULL,
+            ipv6 TEXT DEFAULT NULL,
             address_shift INTEGER NOT NULL DEFAULT 1,
             private_key TEXT NOT NULL,
             public_key TEXT NOT NULL,
@@ -31,6 +31,9 @@ def init_db(conn: sqlite3.Connection):
         )
         """,
     )
+
+    # indexes
+    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_interfaces_name ON interfaces(ipv4, ipv6)")
 
     # clients table
     cur.execute(
@@ -48,6 +51,9 @@ def init_db(conn: sqlite3.Connection):
             UNIQUE (interface, alias)
         )""",
     )
+
+    # indexes
+    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_clients_interface ON clients(interface)")
 
     conn.commit()
 
@@ -96,8 +102,8 @@ class Interface:
         return cls(
             name=result["name"],
             created_at=datetime.strptime(result["created_at"], "%Y-%m-%d %H:%M:%S"),
-            ipv4=ipaddress.IPv4Interface(result["ipv4"]),
-            ipv6=ipaddress.IPv6Interface(result["ipv6"]),
+            ipv4=ipaddress.IPv4Interface(result["ipv4"]) if result["ipv4"] else None,
+            ipv6=ipaddress.IPv6Interface(result["ipv6"]) if result["ipv6"] else None,
             address_shift=result["address_shift"],
             private_key=result["private_key"],
             public_key=result["public_key"],
@@ -146,8 +152,8 @@ class Interface:
             (
                 self.name,
                 self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-                str(self.ipv4),
-                str(self.ipv6),
+                self.ipv4,
+                self.ipv6,
                 self.address_shift,
                 self.private_key,
                 self.public_key,

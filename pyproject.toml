@@ -11,5 +11,13 @@ dependencies = [
     "rich>=14.0.0",
 ]
 
+[build-system]
+requires = ["uv_build>=0.10.2,<0.11.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "wg_gen"
+module-root = "."
+
 [project.scripts]
 wg-gen = "wg_gen.__main__:main"

@@ -2,8 +2,8 @@ import errno
 import ipaddress
 import logging
 import sqlite3
+from random import randint
 
-import rich
 from argclass import Argument, Nargs
 
 from wg_gen.cli import BaseParser
@@ -13,9 +13,52 @@ from wg_gen.keygen import keygen
 from wg_gen.table import SimpleTable
 
 
+NON_LOCAL_NETS = frozenset(
+    map(
+        ipaddress.ip_network,
+        [
+            "1.0.0.0/8",
+            "2.0.0.0/8",
+            "3.0.0.0/8",
+            "4.0.0.0/6",
+            "8.0.0.0/7",
+            "11.0.0.0/8",
+            "12.0.0.0/6",
+            "16.0.0.0/4",
+            "32.0.0.0/3",
+            "64.0.0.0/2",
+            "128.0.0.0/3",
+            "160.0.0.0/5",
+            "168.0.0.0/6",
+            "172.0.0.0/12",
+            "172.32.0.0/11",
+            "172.64.0.0/10",
+            "172.128.0.0/9",
+            "173.0.0.0/8",
+            "174.0.0.0/7",
+            "176.0.0.0/4",
+            "192.0.0.0/9",
+            "192.128.0.0/11",
+            "192.160.0.0/13",
+            "192.169.0.0/16",
+            "192.170.0.0/15",
+            "192.172.0.0/14",
+            "192.176.0.0/12",
+            "192.192.0.0/10",
+            "193.0.0.0/8",
+            "194.0.0.0/7",
+            "196.0.0.0/6",
+            "200.0.0.0/5",
+            "208.0.0.0/4",
+            "2000::/3",
+        ]
+    )
+)
+
+
 class InterfaceAddParser(BaseParser):
     """Add a new WireGuard interface"""
-    name: str = Argument(help="Interface name (e.g. wg0)")
+    name: str = Argument("name", help="Interface name (e.g. wg0)")
     ipv4: ipaddress.IPv4Interface | None = Argument(
         default=None,
         help="IPv4 interface for server, all subnet addresses wil be used for clients (e.g. 10.0.0.1/24)",
@@ -27,7 +70,10 @@ class InterfaceAddParser(BaseParser):
         type=ipaddress.IPv6Interface,
     )
     mtu: int = Argument(default=1420, help="MTU to use for the interface")
-    listen_port: int = Argument(default=51820, help="Server listen port")
+    listen_port: int = Argument(
+        default=randint(1024, 65000),
+        help="Server listen port, if not specified a random port between 1024 and 65000 will be used",
+    )
     endpoint: str = Argument(required=True, help="Server endpoint host:port for clients")
     dns: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = Argument(
         nargs=Nargs.ONE_OR_MORE,
@@ -35,15 +81,24 @@ class InterfaceAddParser(BaseParser):
         help="DNS servers for clients",
         type=ipaddress.ip_address,
     )
-    allowed_ips: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = Argument(
+    allowed_ips: list[str] = Argument(
         nargs=Nargs.ONE_OR_MORE,
-        default=["0.0.0.0/0", "2000::/3", "64:ff9b::/96"],
-        help="Allowed IPs for peers",
+        default=["0.0.0.0/0", "2000::/3"],
+        help="Allowed IPs for peers. Special value 'non-local' can be used to set all non-local networks",
+        type=str,
     )
     persistent_keepalive: int = Argument(default=15, help="Persistent keepalive seconds")
 
     def __call__(self, conn: sqlite3.Connection) -> int:
         private_key, public_key = keygen()
+        allowed_ips = set()
+
+        for allowed_ip in self.allowed_ips:
+            if allowed_ip == "non-local":
+                allowed_ips.update(NON_LOCAL_NETS)
+            else:
+                allowed_ips.add(ipaddress.ip_network(allowed_ip))
+
         interface = Interface(
             name=self.name,
             ipv4=self.ipv4,
@@ -52,7 +107,7 @@ class InterfaceAddParser(BaseParser):
             listen_port=self.listen_port,
             endpoint=self.endpoint,
             dns=self.dns,
-            allowed_ips=self.allowed_ips,
+            allowed_ips=allowed_ips,
             persistent_keepalive=self.persistent_keepalive,
             public_key=public_key,
             private_key=private_key,
