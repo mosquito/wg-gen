@@ -94,9 +94,9 @@ class InterfaceAddParser(BaseParser):
         default=15, help="Persistent keepalive seconds"
     )
 
-    def __call__(self, conn: sqlite3.Connection) -> int:
+    def __call__(self, conn: sqlite3.Connection) -> int:  # type: ignore[override]
         private_key, public_key = keygen()
-        allowed_ips = set()
+        allowed_ips: set[ipaddress.IPv4Network | ipaddress.IPv6Network] = set()
 
         for allowed_ip in self.allowed_ips:
             if allowed_ip == "non-local":
@@ -130,7 +130,7 @@ class InterfaceAddParser(BaseParser):
 class InterfaceListParser(BaseParser):
     """List all interfaces"""
 
-    def __call__(self, conn: sqlite3.Connection) -> int:
+    def __call__(self, conn: sqlite3.Connection) -> int:  # type: ignore[override]
         table = SimpleTable(
             "Interface",
             "Endpoint",
@@ -159,12 +159,12 @@ class InterfaceListParser(BaseParser):
                 str(interface.address_shift),
             )
 
-        table.print(self.__parent__.__parent__.output_format)
+        table.print(self.__parent__.__parent__.output_format)  # type: ignore[union-attr]
         return 0
 
 
 class InterfaceRemoveParser(ClientBaseParser):
-    def __call__(self, conn: sqlite3.Connection) -> int:
+    def __call__(self, conn: sqlite3.Connection) -> int:  # type: ignore[override]
         try:
             interface = Interface.load(conn, self.interface)
         except LookupError:

@@ -7,7 +7,7 @@ import sqlite3
 import argclass
 
 from argclass import Argument
-from qrcode.main import QRCode
+from qrcode.main import QRCode  # type: ignore[import-untyped]
 from rich import get_console
 from rich.panel import Panel
 
@@ -30,7 +30,7 @@ class ClientAddParser(ClientBaseParser):
     force: bool = False
     qr: bool = False
 
-    def __call__(self, conn: sqlite3.Connection) -> int:
+    def __call__(self, conn: sqlite3.Connection) -> int:  # type: ignore[override]
         try:
             interface = Interface.load(conn, self.interface)
         except LookupError:
@@ -61,7 +61,7 @@ class ClientAddParser(ClientBaseParser):
             return 1
 
         config = configparser.RawConfigParser()
-        config.optionxform = str
+        config.optionxform = str  # type: ignore[assignment]
 
         config.add_section("Interface")
         config.add_section("Peer")
@@ -110,7 +110,7 @@ class ClientRemoveParser(ClientBaseParser):
         help="Clients alias to remove",
     )
 
-    def __call__(self, conn: sqlite3.Connection) -> int:
+    def __call__(self, conn: sqlite3.Connection) -> int:  # type: ignore[override]
         for alias in self.aliases:
             try:
                 client = Client.load(conn, alias, self.interface)
@@ -129,7 +129,7 @@ class ClientRemoveParser(ClientBaseParser):
 class ClientListParser(BaseParser):
     """List all clients for an interface"""
 
-    def __call__(self, conn: sqlite3.Connection) -> int:
+    def __call__(self, conn: sqlite3.Connection) -> int:  # type: ignore[override]
         table = SimpleTable(
             "Interface",
             "Client",
@@ -149,7 +149,7 @@ class ClientListParser(BaseParser):
                     client.public_key,
                 )
 
-        table.print(self.__parent__.__parent__.output_format)
+        table.print(self.__parent__.__parent__.output_format)  # type: ignore[union-attr]
         return 0
 
 

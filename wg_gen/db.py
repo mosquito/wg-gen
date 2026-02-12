@@ -71,8 +71,8 @@ def db_connection(db_path: Path):
 @dataclass(frozen=False)
 class Interface:
     name: str
-    ipv4: ipaddress.IPv4Interface
-    ipv6: ipaddress.IPv6Interface
+    ipv4: ipaddress.IPv4Interface | None
+    ipv6: ipaddress.IPv6Interface | None
     private_key: str
     public_key: str
     mtu: int
@@ -117,15 +117,15 @@ class Interface:
         """Check that server address is in the network and there is room
         for at least one client address (server + shift=1)."""
         if self.ipv4:
-            first_client = self.ipv4 + 1
-            if first_client.ip not in self.ipv4.network:
+            first_client_v4 = self.ipv4 + 1
+            if first_client_v4.ip not in self.ipv4.network:
                 raise ValueError(
                     f"IPv4 network {self.ipv4.network} has no room "
                     f"for client addresses (server address {self.ipv4.ip})",
                 )
         if self.ipv6:
-            first_client = self.ipv6 + 1
-            if first_client.ip not in self.ipv6.network:
+            first_client_v6 = self.ipv6 + 1
+            if first_client_v6.ip not in self.ipv6.network:
                 raise ValueError(
                     f"IPv6 network {self.ipv6.network} has no room "
                     f"for client addresses (server address {self.ipv6.ip})",
@@ -140,18 +140,18 @@ class Interface:
         )
         for row in cur.fetchall():
             if self.ipv4 and row["ipv4"]:
-                existing = ipaddress.IPv4Interface(row["ipv4"])
-                if self.ipv4.network.overlaps(existing.network):
+                existing_v4 = ipaddress.IPv4Interface(row["ipv4"])
+                if self.ipv4.network.overlaps(existing_v4.network):
                     raise ValueError(
                         f"IPv4 subnet {self.ipv4.network} overlaps with "
-                        f"interface '{row['name']}' ({existing.network})",
+                        f"interface '{row['name']}' ({existing_v4.network})",
                     )
             if self.ipv6 and row["ipv6"]:
-                existing = ipaddress.IPv6Interface(row["ipv6"])
-                if self.ipv6.network.overlaps(existing.network):
+                existing_v6 = ipaddress.IPv6Interface(row["ipv6"])
+                if self.ipv6.network.overlaps(existing_v6.network):
                     raise ValueError(
                         f"IPv6 subnet {self.ipv6.network} overlaps with "
-                        f"interface '{row['name']}' ({existing.network})",
+                        f"interface '{row['name']}' ({existing_v6.network})",
                     )
 
     def save(self, conn: sqlite3.Connection) -> None:
@@ -233,7 +233,7 @@ class Interface:
         alias: str,
         preshared_key: bool = False,
     ) -> tuple["Client", str]:
-        preshared_key = preshared_keygen() if preshared_key else None
+        psk: str | None = preshared_keygen() if preshared_key else None
 
         ipv4_iface = self.generate_client_ipv4()
         ipv6_iface = self.generate_client_ipv6()
@@ -249,7 +249,7 @@ class Interface:
             interface=self.name,
             alias=alias,
             public_key=public,
-            preshared_key=preshared_key,
+            preshared_key=psk,
             ipv4=ipv4,
             ipv6=ipv6,
         )
@@ -290,8 +290,8 @@ class Client:
     alias: str
     public_key: str
     preshared_key: str | None
-    ipv4: ipaddress.IPv4Address
-    ipv6: ipaddress.IPv6Address
+    ipv4: ipaddress.IPv4Address | None
+    ipv6: ipaddress.IPv6Address | None
     created_at: datetime = field(default_factory=datetime.now)
 
     @classmethod

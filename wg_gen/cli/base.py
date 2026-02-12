@@ -5,9 +5,8 @@ import argclass
 
 
 class BaseParser(argclass.Parser):
-    # noinspection PyMethodOverriding
-    def __call__(self, conn: sqlite3.Connection) -> int:
+    def __call__(self, conn: sqlite3.Connection) -> int:  # type: ignore[override]
         if self.current_subparser is not None:
-            return self.current_subparser(conn)
+            return self.current_subparser(conn)  # type: ignore[call-arg]
         self.print_help()
         exit(errno.EINVAL)

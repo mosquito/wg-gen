@@ -29,16 +29,18 @@ class SimpleTable(Table):
     def print_table(self):
         rich.print(self)
 
-    def get_rows(self) -> list[dict[str, str]]:
-        data = {}
+    def get_rows(self) -> list[dict[str, str | list[str]]]:
+        data: dict[str, list[str | list[str]]] = {}
         cells_len = 0
         for col in self.columns:
-            hdr = col.header.lower().replace(" ", "_")
-            data[hdr] = list(c if "\n" not in c else c.splitlines() for c in col.cells)
+            hdr = str(col.header).lower().replace(" ", "_")
+            data[hdr] = [
+                str(c) if "\n" not in str(c) else str(c).splitlines() for c in col.cells
+            ]
             cells_len = len(data[hdr])
-        result = []
+        result: list[dict[str, str | list[str]]] = []
         for i in range(cells_len):
-            entry = {}
+            entry: dict[str, str | list[str]] = {}
             for hdr in data:
                 entry[hdr] = data[hdr][i]
             result.append(entry)

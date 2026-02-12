@@ -15,7 +15,7 @@ class SystemdNetworkdParser(BaseParser):
         "--output", "-o", default=Path("/etc/systemd/network"), help="Output directory"
     )
 
-    def __call__(self, conn: sqlite3.Connection) -> int:
+    def __call__(self, conn: sqlite3.Connection) -> int:  # type: ignore[override]
         output_path = self.output.resolve()
         logging.info("Generating systemd-networkd configuration to %s", output_path)
 
@@ -87,7 +87,7 @@ class WGQuickParser(BaseParser):
         "--output", "-o", default=Path("/etc/wireguard"), help="Output directory"
     )
 
-    def __call__(self, conn: sqlite3.Connection) -> int:
+    def __call__(self, conn: sqlite3.Connection) -> int:  # type: ignore[override]
         output_path = self.output.resolve()
         logging.info("Generating wg-quick configuration to %s", output_path)
 
@@ -138,6 +138,6 @@ class RenderParser(BaseParser):
     systemd = SystemdNetworkdParser()
     wgquick = WGQuickParser()
 
-    def __call__(self, conn: sqlite3.Connection) -> int:
+    def __call__(self, conn: sqlite3.Connection) -> int:  # type: ignore[override]
         self.print_help()
         return errno.EINVAL
