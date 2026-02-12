@@ -1,8 +1,16 @@
 # WireGuard Configuration Generator
 
-A command-line tool for managing WireGuard VPN interfaces and clients. This project helps you set up and maintain
+A command-line tool for managing WireGuard VPN interfaces and clients. It helps you set up and maintain
 a WireGuard VPN server, generate client configurations, and render system configuration files for both systemd-networkd
 and wg-quick.
+
+## Motivation
+
+Managing WireGuard configurations by hand gets tedious fast - generating key pairs, tracking IP assignments,
+keeping server and client configs in sync. This tool was born out of a need to manage a home network VPN
+where family members and devices come and go. Instead of editing config files and juggling keys manually,
+`wg-gen` keeps everything in a local SQLite database and generates correct, ready-to-use configurations
+with a single command.
 
 ## Features
 
@@ -20,12 +28,45 @@ and wg-quick.
 
 ### Prerequisites
 
-The tool requires Python 3.10+.
+- Python 3.10+
+- [uv](https://docs.astral.sh/uv/) package manager
+
+### Step 1: Install uv
+
+```bash
+pip install uv
+```
+
+On Ubuntu/Debian, where system-managed Python may block `pip install`, add `--break-system-packages`:
+
+```bash
+pip install uv --break-system-packages
+```
+
+### Step 2: Install wg-gen
+
+```bash
+uv tool install wg-gen
+```
+
+This installs `wg-gen` into an isolated environment and makes the `wg-gen` command available globally.
+
+### Step 3: Verify
+
+```bash
+wg-gen --help
+```
+
+### Upgrading
+
+```bash
+uv tool upgrade wg-gen
+```
 
 ### Install from source
 
 ```bash
-pip install git+https://github.com/mosquito/wg-gen.git
+uv tool install git+https://github.com/mosquito/wg-gen.git
 ```
 
 ## Usage
@@ -82,10 +123,10 @@ wg-gen interface add <interface_name> [OPTIONS]
 | `--ipv4`                 | IPv4 interface for server with subnet (e.g., 10.0.0.1/24)  | None                              |
 | `--ipv6`                 | IPv6 interface for server with subnet (e.g., fd00::1/64)   | None                              |
 | `--mtu`                  | MTU to use for the interface                               | 1420                              |
-| `--listen-port`          | Server listen port                                         | 51820                             |
+| `--listen-port`          | Server listen port                                         | Random (1024-65000)               |
 | `--endpoint`             | Server endpoint host:port for clients                      | Required                          |
 | `--dns`                  | DNS servers for clients                                    | 1.1.1.1, 8.8.8.8                  |
-| `--allowed-ips`          | Allowed IPs for peers                                      | 0.0.0.0/0, 2000::/3, 64:ff9b::/96 |
+| `--allowed-ips`          | Allowed IPs for peers (`non-local` for all non-local nets) | 0.0.0.0/0, 2000::/3               |
 | `--persistent-keepalive` | Persistent keepalive seconds                               | 15                                |
 
 #### Client Configuration
@@ -155,14 +196,14 @@ You can specify a different location with the `--db-path` option.
 
 ## Configuration Files
 
-Utility support read configuration files from `~/.config/wg-gen/config.yaml` by default or from path located in 
+The tool reads configuration from `~/.local/share/wg-gen/config.ini` by default or from the path specified in the
 `WG_GEN_CONFIG` environment variable.
 
 ### Example
 
 ```ini
 [DEFAULT]
-# Default configuration for wg-gen will be written to ~/.config/wg-gen/config.yaml 
+# Default configuration for wg-gen will be written to ~/.local/share/wg-gen/config.ini
 # when database is created
 db_path = ~/.local/share/wg-gen/database.sqlite3
 

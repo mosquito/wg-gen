@@ -1,7 +1,7 @@
 [project]
 name = "wg-gen"
 version = "0.1.0"
-description = "Add your description here"
+description = "CLI tool for managing WireGuard VPN interfaces and clients"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
