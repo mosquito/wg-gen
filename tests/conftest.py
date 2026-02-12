@@ -13,6 +13,12 @@ class CallResult:
     stderr: str
 
 
+@pytest.fixture(autouse=True)
+def _no_color(monkeypatch):
+    monkeypatch.setenv("NO_COLOR", "1")
+    monkeypatch.delenv("FORCE_COLOR", raising=False)
+
+
 @pytest.fixture
 def cli(tmp_path, capsys) -> Callable[[*[str, ...]], CallResult]:
     db_path = tmp_path / "db.sqlite"
