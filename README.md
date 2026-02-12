@@ -1,5 +1,10 @@
 # WireGuard Configuration Generator
 
+[![PyPI Version](https://img.shields.io/pypi/v/wg-gen.svg)](https://pypi.org/project/wg-gen/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/wg-gen.svg)](https://pypi.org/project/wg-gen/)
+[![CI](https://github.com/mosquito/wg-gen/actions/workflows/ci.yml/badge.svg)](https://github.com/mosquito/wg-gen/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/mosquito/wg-gen/blob/master/LICENSE)
+
 A command-line tool for managing WireGuard VPN interfaces and clients. It helps you set up and maintain
 a WireGuard VPN server, generate client configurations, and render system configuration files for both systemd-networkd
 and wg-quick.
