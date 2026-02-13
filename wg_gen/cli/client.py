@@ -81,7 +81,7 @@ class ClientAddParser(ClientBaseParser):
 
         config.set("Peer", "PublicKey", interface.public_key)
         config.set("Peer", "AllowedIPs", ", ".join(map(str, interface.allowed_ips)))
-        config.set("Peer", "Endpoint", interface.endpoint)
+        config.set("Peer", "Endpoint", f"{interface.endpoint}:{interface.listen_port}")
         config.set("Peer", "PersistentKeepalive", str(interface.persistent_keepalive))
 
         with io.StringIO() as fp:

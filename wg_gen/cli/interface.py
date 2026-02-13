@@ -76,7 +76,7 @@ class InterfaceAddParser(BaseParser):
         help="Server listen port, if not specified a random port between 1024 and 65000 will be used",
     )
     endpoint: str = Argument(
-        required=True, help="Server endpoint host:port for clients"
+        required=True, help="Server endpoint hostname or IP for clients"
     )
     dns: list[ipaddress.IPv4Address | ipaddress.IPv6Address] = Argument(
         nargs=Nargs.ONE_OR_MORE,
